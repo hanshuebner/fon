@@ -27,7 +27,6 @@ uint8_t keyboard_pins[7] = {
   RPI_BPLUS_GPIO_J8_38,
   RPI_BPLUS_GPIO_J8_36
 };
-  
 
 int
 disable_swapping()

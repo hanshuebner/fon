@@ -5,4 +5,6 @@ config.status
 doc/Makefile
 src/.deps/
 src/Makefile
+src/bcm2835.o
+src/libbcm2835.a
 stamp-h1
