@@ -18,8 +18,16 @@
 #define POLL_HZ		40
 
 #define	BELL_PIN	RPI_BPLUS_GPIO_J8_32
-uint8_t row_pins[4] = { RPI_BPLUS_GPIO_J8_31, RPI_BPLUS_GPIO_J8_33, RPI_BPLUS_GPIO_J8_35, RPI_BPLUS_GPIO_J8_37 };
-uint8_t col_pins[3] = { RPI_BPLUS_GPIO_J8_36, RPI_BPLUS_GPIO_J8_38, RPI_BPLUS_GPIO_J8_40 };
+uint8_t keyboard_pins[7] = {
+  RPI_BPLUS_GPIO_J8_37,
+  RPI_BPLUS_GPIO_J8_35,
+  RPI_BPLUS_GPIO_J8_33,
+  RPI_BPLUS_GPIO_J8_31,
+  RPI_BPLUS_GPIO_J8_40,
+  RPI_BPLUS_GPIO_J8_38,
+  RPI_BPLUS_GPIO_J8_36
+};
+  
 
 int
 disable_swapping()
@@ -53,20 +61,34 @@ define_pin_as_output(uint8_t pin)
   bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);
 }
 
+int keymap[128];
+
+void
+setup_keymap()
+{
+  keymap[0b0111011] = '1';
+  keymap[0b1011011] = '4';
+  keymap[0b1101011] = '7';
+  keymap[0b1110011] = '*';
+  keymap[0b0111101] = '2';
+  keymap[0b1011101] = '5';
+  keymap[0b1101101] = '8';
+  keymap[0b1110101] = '0';
+  keymap[0b0111110] = '3';
+  keymap[0b1011110] = '6';
+  keymap[0b1101110] = '9';
+  keymap[0b1110110] = '#';
+}
+
 int
 scan_keyboard()
 {
-  int pressed = -1;
-  for (int row = 0; row < 4; row++) {
-    bcm2835_gpio_write(row_pins[row], LOW);
-    for (int col = 0; col < 3; col++) {
-      if (bcm2835_gpio_lev(col_pins[col]) == LOW) {
-        pressed = row * 3 + col;
-      }
-    }
-    bcm2835_gpio_write(row_pins[row], HIGH);
+  uint8_t keycode = 0;
+  for (int i = 0; i < sizeof keyboard_pins; i++) {
+    keycode <<= 1;
+    keycode |= bcm2835_gpio_lev(keyboard_pins[i]);
   }
-  return pressed;
+  return keymap[keycode];
 }
 
 void
@@ -77,12 +99,8 @@ setup_pins()
     exit(1);
   }
 
-  for (int i = 0; i < 4; i++) {
-    define_pin_as_output(row_pins[i]);
-    bcm2835_gpio_write(row_pins[i], HIGH);
-  }
-  for (int i = 0; i < 3; i++) {
-    define_pin_as_input(col_pins[i]);
+  for (int i = 0; i < sizeof keyboard_pins; i++) {
+    define_pin_as_input(keyboard_pins[i]);
   }
 
   define_pin_as_output(BELL_PIN);
@@ -112,31 +130,17 @@ create_socket()
   }
 }
 
-char
-decode_key(int key)
-{
-  static const char keymap[12] = { '1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#' };
-  if (key == -1) {
-    return ' ';
-  } else if (key >= 0 && key < 12) {
-    return keymap[key];
-  } else {
-    return '?';
-  }
-}
-
 void
-send_keypress_packet(int key)
+send_keypress_packet(char key)
 {
   static struct sockaddr_in sockaddr;
-  char c = decode_key(key);
 
-  printf("Sending keypress %d => '%c'\n", key, c);
+  printf("Sending keypress '%c'\n", key);
 
   sockaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
   sockaddr.sin_port = htons(UDP_SEND_PORT);
 
-  if (sendto(sock, &c, 1, 0, (const struct sockaddr*)&sockaddr, sizeof sockaddr) != 1) {
+  if (sendto(sock, &key, 1, 0, (const struct sockaddr*)&sockaddr, sizeof sockaddr) != 1) {
     perror("send");
     exit(1);
   }
@@ -172,7 +176,7 @@ void
 handle_timer(int signal)
 {
   static uint32_t cycle_count;
-  static int previous_key = -1;
+  static int previous_key = 0;
   static int ringing = 0;
 
   cycle_count++;
@@ -193,10 +197,10 @@ handle_timer(int signal)
   }
 
   if (ringing) {
-    bcm2835_gpio_write(BELL_PIN, (cycle_count & 1) ? HIGH : LOW);
+    bcm2835_gpio_write(BELL_PIN, cycle_count & 1);
   } else {
-    // Make sure the bell is not kept in HIGH state when ringing was stopped
-    bcm2835_gpio_write(BELL_PIN, LOW);
+    // Make sure the bell is not kept in high state when ringing was stopped
+    bcm2835_gpio_write(BELL_PIN, 0);
   }
 }
 
@@ -221,6 +225,7 @@ int
 main(int argc, char* argv[])
 {
   disable_swapping();
+  setup_keymap();
   setup_pins();
   create_socket();
   setup_timer();
