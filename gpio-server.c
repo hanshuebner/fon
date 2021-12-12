@@ -181,7 +181,7 @@ handle_timer(int signal)
   cycle_count++;
 
   int current_key = scan_keyboard();
-  if (!(cycle_count % 4) && previous_key != current_key) {
+  if ((cycle_count & 1) && previous_key != current_key) {
     send_keypress_packet(current_key);
     previous_key = current_key;
   }
