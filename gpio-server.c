@@ -79,7 +79,7 @@ setup_keymap()
   keymap[0b1110110] = '#';
 }
 
-int
+uint8_t
 scan_keyboard()
 {
   uint8_t keycode = 0;
@@ -87,7 +87,7 @@ scan_keyboard()
     keycode <<= 1;
     keycode |= bcm2835_gpio_lev(keyboard_pins[i]);
   }
-  return keymap[keycode];
+  return keycode;
 }
 
 void
@@ -175,15 +175,15 @@ void
 handle_timer(int signal)
 {
   static uint32_t cycle_count;
-  static int previous_key = 0;
+  static uint8_t previous_keycode = 0;
   static int ringing = 0;
 
   cycle_count++;
 
-  int current_key = scan_keyboard();
-  if ((cycle_count & 1) && previous_key != current_key) {
-    send_keypress_packet(current_key);
-    previous_key = current_key;
+  uint8_t current_keycode = scan_keyboard();
+  if ((cycle_count & 1) && previous_keycode != current_keycode) {
+    send_keypress_packet(keymap[current_keycode]);
+    previous_keycode = current_keycode;
   }
 
   switch (receive_ring_command()) {
