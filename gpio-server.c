@@ -17,15 +17,17 @@
 #define UDP_SEND_PORT	1778
 #define POLL_HZ		40
 
-#define	BELL_PIN	RPI_BPLUS_GPIO_J8_32
+#define HOOK_PIN	24
+#define	BELL_PIN	23
+
 uint8_t keyboard_pins[7] = {
-  RPI_BPLUS_GPIO_J8_37,
-  RPI_BPLUS_GPIO_J8_35,
-  RPI_BPLUS_GPIO_J8_33,
-  RPI_BPLUS_GPIO_J8_31,
-  RPI_BPLUS_GPIO_J8_40,
-  RPI_BPLUS_GPIO_J8_38,
-  RPI_BPLUS_GPIO_J8_36
+  19,
+  16,
+  13,
+  12,
+  6,
+  5,
+  25
 };
 
 int
@@ -101,6 +103,7 @@ setup_pins()
   for (int i = 0; i < sizeof keyboard_pins; i++) {
     define_pin_as_input(keyboard_pins[i]);
   }
+  define_pin_as_input(HOOK_PIN);
 
   define_pin_as_output(BELL_PIN);
   bcm2835_gpio_write(BELL_PIN, LOW);
@@ -130,11 +133,12 @@ create_socket()
 }
 
 void
-send_keypress_packet(char key)
+send_packet(char key, int off_hook)
 {
   static struct sockaddr_in sockaddr;
+  uint8_t state = key | off_hook ? 0x80 : 0;
 
-  printf("Sending keypress '%c'\n", key);
+  printf("Sending keypress '%c' and off_hook %d\n", key, off_hook);
 
   sockaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
   sockaddr.sin_port = htons(UDP_SEND_PORT);
@@ -146,7 +150,7 @@ send_keypress_packet(char key)
 }
 
 int
-receive_ring_command()
+receive_packet()
 {
   uint8_t buf;
   int recv_result = recv(sock, &buf, 1, MSG_DONTWAIT);
@@ -176,17 +180,20 @@ handle_timer(int signal)
 {
   static uint32_t cycle_count;
   static uint8_t previous_keycode = 0;
+  static int previous_off_hook = 0;
   static int ringing = 0;
 
   cycle_count++;
 
   uint8_t current_keycode = scan_keyboard();
-  if ((cycle_count & 1) && previous_keycode != current_keycode) {
-    send_keypress_packet(keymap[current_keycode]);
+  int current_off_hook = bcm2835_gpio_lev(HOOK_PIN);
+  if ((cycle_count & 1) && (previous_keycode != current_keycode || previous_off_hook != current_off_hook)) {
+    send_packet(keymap[current_keycode], current_off_hook);
     previous_keycode = current_keycode;
+    previous_off_hook = current_off_hook;
   }
 
-  switch (receive_ring_command()) {
+  switch (receive_packet()) {
   case 1:
     ringing = 1;
     break;
