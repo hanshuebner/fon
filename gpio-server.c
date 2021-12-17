@@ -133,12 +133,12 @@ create_socket()
 }
 
 void
-send_packet(char key, int off_hook)
+send_packet(char key, int hook)
 {
   static struct sockaddr_in sockaddr;
-  uint8_t state = key | off_hook ? 0x80 : 0;
+  uint8_t state = key | hook ? 0x80 : 0;
 
-  printf("Sending keypress '%c' and off_hook %d\n", key, off_hook);
+  printf("Sending keypress '%c' and %s hook\n", key, hook ? "on" : "off");
 
   sockaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
   sockaddr.sin_port = htons(UDP_SEND_PORT);
@@ -180,17 +180,17 @@ handle_timer(int signal)
 {
   static uint32_t cycle_count;
   static uint8_t previous_keycode = 0;
-  static int previous_off_hook = 0;
+  static int previous_hook = 0;
   static int ringing = 0;
 
   cycle_count++;
 
   uint8_t current_keycode = scan_keyboard();
-  int current_off_hook = bcm2835_gpio_lev(HOOK_PIN);
-  if ((cycle_count & 1) && (previous_keycode != current_keycode || previous_off_hook != current_off_hook)) {
-    send_packet(keymap[current_keycode], current_off_hook);
+  int current_hook = bcm2835_gpio_lev(HOOK_PIN);
+  if ((cycle_count & 1) && (previous_keycode != current_keycode || previous_hook != current_hook)) {
+    send_packet(keymap[current_keycode], current_hook);
     previous_keycode = current_keycode;
-    previous_off_hook = current_off_hook;
+    previous_hook = current_hook;
   }
 
   switch (receive_packet()) {
