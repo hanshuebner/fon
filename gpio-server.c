@@ -67,17 +67,17 @@ int keymap[128];
 void
 setup_keymap()
 {
-  keymap[0b0111011] = '1';
-  keymap[0b1011011] = '4';
-  keymap[0b1101011] = '7';
-  keymap[0b1110011] = '*';
-  keymap[0b0111101] = '2';
-  keymap[0b1011101] = '5';
-  keymap[0b1101101] = '8';
-  keymap[0b1110101] = '0';
-  keymap[0b0111110] = '3';
-  keymap[0b1011110] = '6';
-  keymap[0b1101110] = '9';
+  keymap[0b0101111] = '1';
+  keymap[0b0111011] = '4';
+  keymap[0b0111101] = '7';
+  keymap[0b0111110] = '*';
+  keymap[0b1001111] = '2';
+  keymap[0b1011011] = '5';
+  keymap[0b1011101] = '8';
+  keymap[0b1011110] = '0';
+  keymap[0b1100111] = '3';
+  keymap[0b1110011] = '6';
+  keymap[0b1110101] = '9';
   keymap[0b1110110] = '#';
 }
 
