@@ -18,7 +18,9 @@
 #define POLL_HZ		40
 
 #define HOOK_PIN	24
-#define	BELL_PIN	23
+#define	BELL_A1_PIN	23
+#define BELL_A2_PIN	22
+#define BELL_EN_PIN	27
 
 uint8_t keyboard_pins[7] = {
   19,
@@ -105,8 +107,10 @@ setup_pins()
   }
   define_pin_as_input(HOOK_PIN);
 
-  define_pin_as_output(BELL_PIN);
-  bcm2835_gpio_write(BELL_PIN, LOW);
+  define_pin_as_output(BELL_A1_PIN);
+  define_pin_as_output(BELL_A2_PIN);
+  define_pin_as_output(BELL_EN_PIN);
+  bcm2835_gpio_write(BELL_EN_PIN, 0);
 }
 
 int sock;
@@ -203,10 +207,11 @@ handle_timer(int signal)
   }
 
   if (ringing) {
-    bcm2835_gpio_write(BELL_PIN, cycle_count & 1);
+    bcm2835_gpio_write(BELL_EN_PIN, 1);
+    bcm2835_gpio_write(BELL_A1_PIN, cycle_count & 1);
+    bcm2835_gpio_write(BELL_A2_PIN, !(cycle_count & 1));
   } else {
-    // Make sure the bell is not kept in high state when ringing was stopped
-    bcm2835_gpio_write(BELL_PIN, 0);
+    bcm2835_gpio_write(BELL_EN_PIN, 0);
   }
 }
 
