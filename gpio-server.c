@@ -142,7 +142,7 @@ send_packet(char key, int hook)
   static struct sockaddr_in sockaddr;
   uint8_t state = key | hook ? 0x80 : 0;
 
-  printf("Sending keypress '%c' and %s hook\n", key, hook ? "on" : "off");
+  printf("Sending keypress '%c' and %s hook\n", key ? key : ' ', hook ? "on" : "off");
 
   sockaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
   sockaddr.sin_port = htons(UDP_SEND_PORT);
@@ -213,6 +213,8 @@ handle_timer(int signal)
   } else {
     bcm2835_gpio_write(BELL_EN_PIN, 0);
   }
+
+  fflush(stdout);
 }
 
 void
