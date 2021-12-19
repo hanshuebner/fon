@@ -10,3 +10,10 @@ handset is connected to a USB sound card.
 ## BCM 2835 GPIO Library
 
 http://www.airspayce.com/mikem/bcm2835/
+
+## Installing systemd unit
+
+    sudo cp gpio-server.service /etc/systemd/system
+    sudo systemctl daemon-reload
+    sudo systemctl enable gpio-server
+    sudo systemctl start gpio-server

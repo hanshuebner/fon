@@ -1,0 +1,8 @@
+[Unit]
+Description=GPIO Server for Telephone
+
+[Service]
+ExecStart=/home/hans/fon/gpio-server
+
+[Install]
+WantedBy=multi-user.target
